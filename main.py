@@ -4,26 +4,25 @@ import requests
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-API = "https://www.minhngoc.net.vn/api/kqxs/mien-bac?ngay="
+URL = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
 
 try:
-    r = requests.get(API, timeout=10)
-    data = r.json()
+    r = requests.get(URL, timeout=10, headers={
+        "User-Agent": "Mozilla/5.0"
+    })
 
-    # cấu trúc thực tế của Minh Ngọc
-    giai_db = None
+    text = r.text
 
-    if isinstance(data, dict):
-        giai_db = (
-            data.get("data", {}).get("db")
-            or data.get("db")
-            or data.get("giai_db")
-        )
+    # debug an toàn
+    print(text[:500])
 
-    if not giai_db:
-        giai_db = "Không lấy được"
+    # fallback cực đơn giản: tìm số 5 chữ
+    import re
+    matches = re.findall(r"\b\d{5}\b", text)
 
-    msg = f"""📊 XỔ SỐ MIỀN BẮC PRO FINAL
+    giai_db = matches[0] if matches else "Không lấy được"
+
+    msg = f"""📊 XỔ SỐ MIỀN BẮC
 
 🏆 Giải đặc biệt: {giai_db}
 """
