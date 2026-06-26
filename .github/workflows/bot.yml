@@ -1,4 +1,4 @@
-name: XSMB PRO BOT
+name: XSMB BOT
 
 on:
   workflow_dispatch:
