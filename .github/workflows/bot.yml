@@ -1,4 +1,4 @@
-name: XSMB Bot
+name: XSMB PRO BOT
 
 on:
   workflow_dispatch:
@@ -8,18 +8,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
 
-      - name: Run script
+      - name: Run bot
         run: python main.py
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
