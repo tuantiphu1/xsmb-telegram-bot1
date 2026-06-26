@@ -8,42 +8,40 @@ API_URL = "https://xoso-api.vercel.app/api/mb"
 
 try:
     res = requests.get(API_URL, timeout=10)
+
+    print("STATUS:", res.status_code)
+    print("TEXT:", res.text[:300])  # 👈 xem raw data
+
+    # ❌ nếu rỗng → báo lỗi ngay
+    if not res.text.strip():
+        raise Exception("API trả về rỗng")
+
     data = res.json()
-    print("API RESPONSE:", data)
 
-    # 👉 thử nhiều kiểu lấy dữ liệu
-    giai_db = None
-
-    if isinstance(data, dict):
-        giai_db = (
-            data.get("giaiDB")
-            or data.get("giaidb")
-            or data.get("special")
-            or (data.get("data", {}) if isinstance(data.get("data"), dict) else {}).get("special")
-        )
+    giai_db = (
+        data.get("giaiDB")
+        or data.get("giaidb")
+        or data.get("special")
+        or data.get("data", {}).get("special")
+        if isinstance(data.get("data"), dict)
+        else None
+    )
 
     if not giai_db:
-        giai_db = "Không lấy được giải ĐB"
+        giai_db = "Không lấy được"
 
     message = f"""📊 KẾT QUẢ XỔ SỐ MIỀN BẮC
 
 🏆 Giải đặc biệt: {giai_db}
 """
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-
-    requests.post(url, data={
-        "chat_id": CHAT_ID,
-        "text": message
-    })
-
 except Exception as e:
-    # 👉 quan trọng: không cho bot chết
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    message = f"❌ Lỗi API XSMB: {str(e)}"
 
-    requests.post(url, data={
-        "chat_id": CHAT_ID,
-        "text": f"❌ Bot lỗi: {str(e)}"
-    })
+# gửi telegram dù đúng hay lỗi
+url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
-    raise
+requests.post(url, data={
+    "chat_id": CHAT_ID,
+    "text": message
+})
