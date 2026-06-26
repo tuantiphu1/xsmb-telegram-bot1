@@ -1,44 +1,31 @@
 import os
 import requests
+import xml.etree.ElementTree as ET
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-API_URL = "https://xoso-api.vercel.app/api/mb"
+URL = "https://xskt.com.vn/rss-feed/mien-bac.rss"
 
 try:
-    res = requests.get(API_URL, timeout=10)
+    res = requests.get(URL, timeout=10)
+    res.raise_for_status()
 
-    print("STATUS:", res.status_code)
-    print("TEXT:", res.text[:300])  # 👈 xem raw data
+    root = ET.fromstring(res.content)
 
-    # ❌ nếu rỗng → báo lỗi ngay
-    if not res.text.strip():
-        raise Exception("API trả về rỗng")
+    # RSS structure: channel -> item đầu tiên = kết quả mới nhất
+    item = root.find(".//item")
 
-    data = res.json()
-
-    giai_db = (
-        data.get("giaiDB")
-        or data.get("giaidb")
-        or data.get("special")
-        or data.get("data", {}).get("special")
-        if isinstance(data.get("data"), dict)
-        else None
-    )
-
-    if not giai_db:
-        giai_db = "Không lấy được"
+    title = item.find("title").text if item is not None else "Không có dữ liệu"
 
     message = f"""📊 KẾT QUẢ XỔ SỐ MIỀN BẮC
 
-🏆 Giải đặc biệt: {giai_db}
+🏆 {title}
 """
 
 except Exception as e:
-    message = f"❌ Lỗi API XSMB: {str(e)}"
+    message = f"❌ Lỗi RSS: {str(e)}"
 
-# gửi telegram dù đúng hay lỗi
 url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
 requests.post(url, data={
