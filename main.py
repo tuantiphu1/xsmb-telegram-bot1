@@ -1,7 +1,7 @@
 import os
+import asyncio
 import requests
-import re
-from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
@@ -9,47 +9,34 @@ CHAT_ID = os.environ["CHAT_ID"]
 URL = "https://xoso.com.vn/xsmb.html"
 
 
-def get_html():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(URL, timeout=60000)
-        page.wait_for_timeout(5000)
-        html = page.content()
-        browser.close()
-        return html
+async def get_db():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        await page.goto(URL, timeout=60000)
+
+        # chờ bảng kết quả load xong
+        await page.wait_for_selector("table", timeout=15000)
+
+        # lấy ô chứa "ĐB"
+        cells = await page.locator("td").all_text_contents()
+
+        await browser.close()
+
+        # tìm đúng chữ ĐB
+        for i in range(len(cells)):
+            if "ĐB" in cells[i]:
+                # số thường nằm ô kế bên
+                if i + 1 < len(cells):
+                    return cells[i + 1].strip()
+
+        return None
 
 
-def extract_db(html):
-    """
-    CHỈ LẤY ĐÚNG DÒNG 'ĐB' KHÔNG LẤY NHẦM SỐ KHÁC
-    """
-    lines = html.split("\n")
-
-    for line in lines:
-        # chuẩn hóa text
-        clean = re.sub(r"<.*?>", " ", line)
-        clean = re.sub(r"\s+", " ", clean).strip()
-
-        # chỉ bắt dòng có ĐB
-        if "ĐB" in clean:
-            match = re.search(r"ĐB.*?(\d{5})", clean)
-            if match:
-                return match.group(1)
-
-    return None
-
-
-def send_telegram(msg):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
-
-
-def main():
+async def main():
     try:
-        html = get_html()
-
-        db = extract_db(html)
+        db = await get_db()
 
         if not db:
             db = "KHÔNG LẤY ĐƯỢC"
@@ -62,8 +49,10 @@ def main():
     except Exception as e:
         msg = f"❌ Lỗi BOT: {str(e)}"
 
-    send_telegram(msg)
+    requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        data={"chat_id": CHAT_ID, "text": msg}
+    )
 
 
-if __name__ == "__main__":
-    main()
+asyncio.run(main())
