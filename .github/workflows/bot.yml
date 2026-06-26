@@ -1,0 +1,20 @@
+name: XSMB Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Tải mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Chạy chương trình
+        run: python main.py
