@@ -1,26 +1,33 @@
 import os
 import requests
+import re
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-URL = "https://www.minhngoc.net.vn/xo-so-truc-tiep/mien-bac.html"
+def extract_db(html):
+    patterns = [
+        r"Giải đặc biệt[^0-9]{0,50}(\d{5})",
+        r"ĐB[^0-9]{0,50}(\d{5})",
+        r"DB[^0-9]{0,50}(\d{5})",
+    ]
+
+    for p in patterns:
+        m = re.search(p, html, re.IGNORECASE)
+        if m:
+            return m.group(1)
+
+    return None
 
 try:
-    r = requests.get(URL, timeout=10, headers={
-        "User-Agent": "Mozilla/5.0"
-    })
+    url = "https://xoso.com.vn/xsmb.html"
 
-    text = r.text
+    html = requests.get(url, timeout=10).text
 
-    # debug an toàn
-    print(text[:500])
+    giai_db = extract_db(html)
 
-    # fallback cực đơn giản: tìm số 5 chữ
-    import re
-    matches = re.findall(r"\b\d{5}\b", text)
-
-    giai_db = matches[0] if matches else "Không lấy được"
+    if not giai_db:
+        giai_db = "Không lấy được"
 
     msg = f"""📊 XỔ SỐ MIỀN BẮC
 
