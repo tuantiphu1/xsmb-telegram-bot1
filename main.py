@@ -1,30 +1,33 @@
 import os
 import requests
-import xml.etree.ElementTree as ET
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-URL = "https://xskt.com.vn/rss-feed/mien-bac.rss"
+API = "https://raw.githubusercontent.com/dzapk/xo-so-json/main/mb.json"
 
 try:
-    res = requests.get(URL, timeout=10)
-    res.raise_for_status()
+    r = requests.get(API, timeout=10)
+    r.raise_for_status()
 
-    root = ET.fromstring(res.content)
+    data = r.json()
 
-    # RSS structure: channel -> item đầu tiên = kết quả mới nhất
-    item = root.find(".//item")
-
-    title = item.find("title").text if item is not None else "Không có dữ liệu"
+    # format an toàn nhiều kiểu JSON
+    giai_db = (
+        data.get("giai_db")
+        or data.get("giaidb")
+        or data.get("DB")
+        or data.get("special")
+        or "Không lấy được"
+    )
 
     message = f"""📊 KẾT QUẢ XỔ SỐ MIỀN BẮC
 
-🏆 {title}
+🏆 Giải đặc biệt: {giai_db}
 """
 
 except Exception as e:
-    message = f"❌ Lỗi RSS: {str(e)}"
+    message = f"❌ Lỗi API: {str(e)}"
 
 url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
