@@ -1,43 +1,65 @@
 import os
+import asyncio
 import requests
-import re
+from playwright.async_api import async_playwright
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHAT_ID = os.environ["CHAT_ID"]
 
-def extract_db(html):
-    patterns = [
-        r"Giải đặc biệt[^0-9]{0,50}(\d{5})",
-        r"ĐB[^0-9]{0,50}(\d{5})",
-        r"DB[^0-9]{0,50}(\d{5})",
-    ]
+URL = "https://xoso.com.vn/xsmb.html"
 
-    for p in patterns:
-        m = re.search(p, html, re.IGNORECASE)
-        if m:
-            return m.group(1)
+
+async def get_html():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+
+        await page.goto(URL, timeout=60000)
+        await page.wait_for_timeout(5000)  # chờ JS load
+
+        html = await page.content()
+
+        await browser.close()
+        return html
+
+
+def extract_db(html):
+    import re
+
+    # tìm đúng khu vực "Giải đặc biệt"
+    match = re.search(
+        r"Giải đặc biệt.*?(\d{5})",
+        html,
+        re.IGNORECASE | re.DOTALL
+    )
+
+    if match:
+        return match.group(1)
 
     return None
 
-try:
-    url = "https://xoso.com.vn/xsmb.html"
 
-    html = requests.get(url, timeout=10).text
+async def main():
+    try:
+        html = await get_html()
 
-    giai_db = extract_db(html)
+        db = extract_db(html)
 
-    if not giai_db:
-        giai_db = "Không lấy được"
+        if not db:
+            db = "Không lấy được"
 
-    msg = f"""📊 XỔ SỐ MIỀN BẮC
+        msg = f"""📊 XỔ SỐ MIỀN BẮC
 
-🏆 Giải đặc biệt: {giai_db}
+🏆 Giải đặc biệt: {db}
 """
 
-except Exception as e:
-    msg = f"❌ Lỗi: {str(e)}"
+    except Exception as e:
+        msg = f"❌ Lỗi: {str(e)}"
 
-requests.post(
-    f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-    data={"chat_id": CHAT_ID, "text": msg}
-)
+    requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        data={"chat_id": CHAT_ID, "text": msg}
+    )
+
+
+asyncio.run(main())
